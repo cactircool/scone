@@ -3,8 +3,10 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -27,9 +29,6 @@ import (
  *
  * This data should be returned in the response as a string, not as a download
  */
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "Hello, secure world!")
-}
 
 // CertificateAuthority holds the CA certificates and keys
 type CertificateAuthority struct {
@@ -173,7 +172,7 @@ func generateIntermediateCA(rootCert *x509.Certificate, rootKey *rsa.PrivateKey)
 }
 
 // Generate a new end-entity certificate (similar to previous implementation)
-func (ca *CertificateAuthority) GenerateCertificate(commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
+func (ca *CertificateAuthority) GenerateCertificate(commonName string, start time.Time, end time.Time) (*x509.Certificate, *rsa.PrivateKey, error) {
 	// Generate private key for end entity
 	entityKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -189,11 +188,11 @@ func (ca *CertificateAuthority) GenerateCertificate(commonName string) (*x509.Ce
 	entityTemplate := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"My Organization"},
+			Organization: []string{"scone"},
 			CommonName:   commonName,
 		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0), // Valid for 1 year
+		NotBefore:             start,
+		NotAfter:              end, 
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	}
@@ -229,7 +228,7 @@ func (ca *CertificateAuthority) CreateP12(
 	caCerts := []*x509.Certificate{ca.IntermediateCert, ca.RootCert}
 
 	// Convert to PKCS#12 format
-	p12Data, err := pkcs12.Encode(rand.Reader, privateKey, cert, caCerts, password)
+	p12Data, err := pkcs12.Modern.Encode(privateKey, cert, caCerts, password)
 	if err != nil {
 		return nil, err
 	}
@@ -240,34 +239,88 @@ func (ca *CertificateAuthority) CreateP12(
 // Web server handler to generate and serve P12 certificate
 func (ca *CertificateAuthority) HandleCertificateRequest(w http.ResponseWriter, r *http.Request) {
 	// Extract common name from query parameter or use default
-	commonName := r.URL.Query().Get("cn")
-	if commonName == "" {
-		commonName = "default.example.com"
-	}
+    type RadiusRequest struct {
+        CommonName string `json:"cn"`
+        Start string `json:"start"`
+        End string `json:"end"`
+    }
 
-	// Generate new certificate
-	cert, privateKey, err := ca.GenerateCertificate(commonName)
-	if err != nil {
-		http.Error(w, "Failed to generate certificate", http.StatusInternalServerError)
-		log.Printf("Certificate generation error: %v", err)
-		return
-	}
+    body := []RadiusRequest{}
+    bytes, err := io.ReadAll(r.Body)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    err = json.Unmarshal(bytes, &body)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer r.Body.Close()
 
-	// Create P12 file
-	password := "your_secure_password" // In practice, generate a unique password per request
-	p12Data, err := ca.CreateP12(cert, privateKey, password)
-	if err != nil {
-		http.Error(w, "Failed to create P12 file", http.StatusInternalServerError)
-		log.Printf("P12 file creation error: %v", err)
-		return
-	}
+    certs := [][]byte{}
+    for _, req := range body {
+        commonName := req.CommonName
+        if req.CommonName == "" {
+            http.Error(w, "Invalid common name", http.StatusBadRequest)
+            return
+        }
+
+        startStr := req.Start
+        if startStr == "" {
+            http.Error(w, "No start time provided", http.StatusBadRequest)
+            return
+        }
+
+        start, err := time.Parse("2006-01-02T15:04:05-0700", startStr)
+        if err != nil {
+            http.Error(w, "Invalid start time", http.StatusBadRequest)
+            return
+        }
+
+        endStr := req.End
+        if endStr == "" {
+            http.Error(w, "No end time provided", http.StatusBadRequest)
+            return
+        }
+
+        end, err := time.Parse("2006-01-02T15:04:05-0700", endStr)
+        if err != nil {
+            http.Error(w, "Invalid end time", http.StatusBadRequest)
+            return
+        }
+
+        // Generate new certificate
+        cert, privateKey, err := ca.GenerateCertificate(commonName, start, end)
+        if err != nil {
+            http.Error(w, "Failed to generate certificate", http.StatusInternalServerError)
+            log.Printf("Certificate generation error: %v", err)
+            return
+        }
+
+        // Create P12 file
+        password := "whatever" // In practice, generate a unique password per request
+        p12Data, err := ca.CreateP12(cert, privateKey, password)
+        if err != nil {
+            http.Error(w, "Failed to create P12 file", http.StatusInternalServerError)
+            log.Printf("P12 file creation error: %v", err)
+            return
+        }
+
+        certs = append(certs, p12Data)
+    }
 
 	// Set response headers
-	w.Header().Set("Content-Type", "application/x-pkcs12")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.p12\"", commonName))
+	w.Header().Set("Content-Type", "text/json")
+	// w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.p12\"", commonName))
 	
 	// Write P12 file to response
-	w.Write(p12Data)
+    certsJson, err := json.Marshal(certs)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+	w.Write(certsJson)
 }
 
 func main() {
@@ -283,7 +336,7 @@ func main() {
 
     // Create a multiplexer (router)
     mux := http.NewServeMux()
-    mux.HandleFunc("/", ca.HandleCertificateRequest)
+    mux.HandleFunc("POST /", ca.HandleCertificateRequest)
 
     // TLS configuration
     tlsConfig := &tls.Config{

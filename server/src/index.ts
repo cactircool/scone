@@ -8,6 +8,7 @@ import { v4 as uuid } from 'uuid';
 config()
 const app = express();
 const port = process.env.PORT;
+const radius = process.env.RADIUS_SERVER_API;
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_API_KEY!)
 
 type User = {
