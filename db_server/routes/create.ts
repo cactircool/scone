@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { supabase } from '../lib'
 import { PostgrestSingleResponse } from '@supabase/supabase-js'
+import { v4 as uuid } from 'uuid'
+import { emit } from 'process'
 
 export const router = Router()
 
@@ -31,7 +33,7 @@ router.put('/company', async (req, res) => {
     })
 
     if (response.error) {
-        res.status(422).send(`Error creating user: ${response.error.name} (${response.error.status ?? '?'} = ${response.error.code ?? '?'}) ${response.error.message}\n${response.error.stack}`)
+        res.status(422).json(response.error)
         return
     }
 
@@ -50,16 +52,17 @@ router.put('/company', async (req, res) => {
         });
 
         if (company.error || role.error) {
-            res.status(500).send(`Unable to create user for some reason: ${JSON.stringify(company.error || role.error, null, 4)}`)
+            res.status(500).json(company.error || role.error)
             return
         }
 
         res.sendStatus(200).json({
             ...company.data,
             ...role.data,
+            id: response.data.user!.id
         })
     } catch (e) {
-        res.sendStatus(500).send(`Internal server error: ${JSON.stringify(e, null, 4)}`)
+        res.sendStatus(500).json(e)
         return
     }
 })
@@ -92,7 +95,7 @@ router.put('/third-party', async (req, res) => {
     })
 
     if (response.error) {
-        res.status(422).send(`Error creating user: ${response.error.name} (${response.error.status ?? '?'} = ${response.error.code ?? '?'}) ${response.error.message}\n${response.error.stack}`)
+        res.status(422).json(response.error)
         return
     }
 
@@ -122,21 +125,101 @@ router.put('/third-party', async (req, res) => {
         });
 
         if (nas.error || role.error) {
-            res.status(500).send(`Unable to create user for some reason: ${JSON.stringify(nas.error || role.error, null, 4)}`)
+            res.status(500).json(nas.error || role.error)
             return
         }
 
         res.sendStatus(200).json({
             ...nas.data,
             ...role.data,
+            id: response.data.user!.id
         })
     } catch (e) {
         if (clientError) {
-            res.status(422).send(`Client error: ${JSON.stringify(e, null, 4)}`)
+            res.status(422).json(e)
             return
         }
 
-        res.sendStatus(500).send(`Internal server error: ${JSON.stringify(e, null, 4)}`)
+        res.sendStatus(500).json(e)
         return
     }
+})
+
+interface UnitExpectedUserCreationData {
+    companyId: string, // uuid of the company
+    profile: any, // custom user data
+    validRanges: { [key: string]: [Date, Date] }, // Ranges of validity keyed by the third party ip address
+}
+type ExpectedUserCreationData = UnitExpectedUserCreationData | UnitExpectedUserCreationData[]
+
+// Pass in a list of units for bulk insertion, or send just one for one by one insertion
+router.put('/user', async (req, res) => {
+    const isExpected = (a: any): a is ExpectedUserCreationData => true
+    if (!isExpected(req.body)) {
+        res.status(422).send('Invalid request, malformed request')
+        return
+    }
+
+    if (Array.isArray(req.body)) {
+        let users: {
+            nas: string,
+            username: string,
+            attribute: string, op: string, value: string,
+            profile: any,
+            company_id: string,
+            valid_from: Date,
+            valid_until: Date,
+        }[] = []
+        for (const user of req.body) {
+            const username = uuid()
+            for (const ipAddress in user.validRanges) {
+                const range = user.validRanges[ipAddress]
+                users.push({
+                    nas: ipAddress,
+                    username: username,
+                    attribute: 'Single-Use',
+                    op: ':=',
+                    value: 'True',
+                    profile: user.profile,
+                    company_id: user.companyId,
+                    valid_from: range[0],
+                    valid_until: range[1],
+                })
+            }
+        }
+
+        const response: PostgrestSingleResponse<any> = await supabase.from('radcheck').insert(users)
+        if (response.error) {
+            res.status(500).json(response.error)
+            return
+        }
+
+        res.status(200).json(response.data)
+        return
+    }
+
+    let users = []
+    const username = uuid()
+    for (const ipAddress in req.body.validRanges) {
+        const range = req.body.validRanges[ipAddress]
+        users.push({
+            nas: ipAddress,
+            username: username,
+            attribute: 'Single-Use',
+            op: ':=',
+            value: 'True',
+            profile: req.body.profile,
+            company_id: req.body.companyId,
+            valid_from: range[0],
+            valid_until: range[1],
+        })
+    }
+
+    const response: PostgrestSingleResponse<any> = await supabase.from('radcheck').insert(users)
+    if (response.error) {
+        res.status(500).json(response.error)
+        return
+    }
+
+    res.status(200).json(response.data)
 })

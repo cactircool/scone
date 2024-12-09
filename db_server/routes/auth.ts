@@ -49,23 +49,19 @@ router.get('/:type/login', async (req, res) => {
             .single(),
         ])
 
-        if (user.error) {
-            res.status(500).send(`Error: ${user.error}`)
-            return
-        }
-
-        if (result.error) {
-            res.status(500).send(`Error: ${user.error}`)
+        if (user.error || result.error) {
+            res.status(500).json(user.error || result.error)
             return
         }
 
         const { roles, ...rest } = result.data
         res.status(200).json({
             ...roles,
-            ...rest
+            ...rest,
+            id: user.data.user.id
         })
     } catch (e) {
-        res.status(500).send(`Error: ${e}`)
+        res.status(500).json(e)
     }
 })
 
@@ -117,22 +113,18 @@ router.put('/:type/login', async (req, res) => {
         .eq('roles.role', type)
         .single()
 
-        if (user.error) {
-            res.status(500).send(`Error: ${user.error}`)
-            return
-        }
-
-        if (result.error) {
-            res.status(500).send(`Error: ${user.error}`)
+        if (user.error || result.error) {
+            res.status(500).json(user.error || result.error)
             return
         }
 
         const { roles, ...rest } = result.data
         res.status(200).json({
             ...roles,
-            ...rest
+            ...rest,
+            id: user.data.user.id,
         })
     } catch (e) {
-        res.status(500).send(`Error: ${e}`)
+        res.status(500).json(e)
     }
 })
