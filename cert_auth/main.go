@@ -2,7 +2,7 @@ package main
 
 import (
 	"ca/endpoints"
-	"ca/util"
+	// "ca/util"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,9 +24,9 @@ func initialize() {
 		cas[a[len(a) - 1]] = item
 	}
 
-	util.SetCA(cas["pem"])
-	util.SetCACerts(cas["pem"])
-	util.SetCAKey(cas["key"])
+	// util.SetCA(cas["pem"])
+	// util.SetCACerts(cas["pem"])
+	// util.SetCAKey(cas["key"])
 }
 
 func generateEndpoints() {

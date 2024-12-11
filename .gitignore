@@ -1,2 +1,6 @@
 cert_auth/certs/https/**
 cert_auth/certs/radius/**
+.vscode
+ca/.*
+ca/cmake-build-debug
+ca/certs
