@@ -255,7 +255,11 @@ void handleClient(int client, SSL_CTX *ctx) {
         X509_REQ *csr = generateCSR(clientKey, commonName.data());
         X509 *cert = signCertificate(csr, ca, caKey, getLong(data, 1), getLong(data, 2)); // 0, 60 * 60 * 24 * 365
 
-        res.append(certToString(cert)).push_back(',');
+        auto *str = certToString(cert);
+        res.append(str).push_back(',');
+        free(str);
+
+        std::cout << res << std::endl;
 
         RSA_free(clientKey);
         X509_REQ_free(csr);

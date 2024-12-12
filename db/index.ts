@@ -6,12 +6,20 @@ import { router as createRouter } from './routes/create'
 import { router as authRouter } from './routes/auth'
 import { router as deleteRouter } from './routes/delete'
 import { router as getRouter } from './routes/get'
+import { Agent, setGlobalDispatcher } from 'undici'
 
 const CERT_PREFIX = './certs'
 const port = 3000
 const app = express()
 app.use(cors())
 app.use(json())
+
+const agent = new Agent({
+    connect: {
+        rejectUnauthorized: false
+    }
+})
+setGlobalDispatcher(agent)
 
 app.get('/', (req, res) => {
     res.send('Hello world!');

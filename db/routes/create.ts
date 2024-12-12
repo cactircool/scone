@@ -56,13 +56,13 @@ router.put('/company', async (req, res) => {
             return
         }
 
-        res.sendStatus(200).json({
+        res.status(200).json({
             ...company.data,
             ...role.data,
             id: response.data.user!.id
         })
     } catch (e) {
-        res.sendStatus(500).json(e)
+        res.status(500).json(e)
         return
     }
 })
@@ -129,7 +129,7 @@ router.put('/third-party', async (req, res) => {
             return
         }
 
-        res.sendStatus(200).json({
+        res.status(200).json({
             ...nas.data,
             ...role.data,
             id: response.data.user!.id
@@ -140,7 +140,7 @@ router.put('/third-party', async (req, res) => {
             return
         }
 
-        res.sendStatus(500).json(e)
+        res.status(500).json(e)
         return
     }
 })
@@ -148,7 +148,7 @@ router.put('/third-party', async (req, res) => {
 interface UnitExpectedUserCreationData {
     companyId: string, // uuid of the company
     profile: any, // custom user data
-    validRanges: { [key: string]: [Date, Date] }, // Ranges of validity keyed by the third party ip address
+    validRanges: { [key: string]: [number, number] }, // Ranges of validity keyed by the third party ip address
 }
 type ExpectedUserCreationData = UnitExpectedUserCreationData | UnitExpectedUserCreationData[]
 
@@ -179,11 +179,11 @@ router.put('/user', async (req, res) => {
     let caCalls: [string, number, number][] = []
     for (const user of req.body) {
         const username = uuid()
-        let fullRange: [Date?, Date?] = [undefined, undefined]
+        let fullRange: [Date, Date] = [new Date(Date.now()), new Date(Date.now())]
         for (const ipAddress in user.validRanges) {
-            const range = user.validRanges[ipAddress]
-            fullRange[0] = getEarlierDate(fullRange[0] ?? range[0], range[0]);
-            fullRange[1] = getLaterDate(fullRange[1] ?? range[1], range[1]);
+            const range = user.validRanges[ipAddress].map((elem: number) => new Date(elem))
+            fullRange[0] = getEarlierDate(fullRange[0], range[0]);
+            fullRange[1] = getLaterDate(fullRange[1], range[1]);
             users.push({
                 nas: ipAddress,
                 username: username,
@@ -197,13 +197,13 @@ router.put('/user', async (req, res) => {
             })
         }
 
-        caCalls.push([ username, (fullRange[0]!.getTime() - Date.now()) / 1000, (fullRange[1]!.getTime() - fullRange[0]!.getTime()) / 1000 ]);
+        caCalls.push([ username, Math.round((fullRange[0].getTime() - Date.now()) / 1000), Math.round((fullRange[1].getTime() - fullRange[0]!.getTime()) / 1000) ]);
     }
 
     const [ca, sql]: [Response, PostgrestSingleResponse<any>] = await Promise.all([
         fetch(process.env.CA_URL!, {
             method: 'PUT',
-            body: caCalls as any,
+            body: JSON.stringify(caCalls),
         }),
         supabase.from('radcheck').insert(users)
     ])
@@ -215,6 +215,6 @@ router.put('/user', async (req, res) => {
 
     res.status(200).json({
         users: sql.data,
-        certs: (await ca.text()).split(',')
+        certs: (await ca.text()).split(',').slice(0, -1)
     })
 })

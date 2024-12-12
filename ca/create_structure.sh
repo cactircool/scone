@@ -13,7 +13,7 @@ cd ../..
 
 touch .env
 cat > .env <<EOF
-CERTS_DIR="./certs"
+CERTS_DIR="../certs"
 HTTPS_CERTS_DIR="\$CERTS_DIR/https"
 RADIUS_CERTS_DIR="\$CERTS_DIR/radius"
 
