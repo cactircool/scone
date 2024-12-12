@@ -255,7 +255,7 @@ void handleClient(int client, SSL_CTX *ctx) {
         X509_REQ *csr = generateCSR(clientKey, commonName.data());
         X509 *cert = signCertificate(csr, ca, caKey, getLong(data, 1), getLong(data, 2)); // 0, 60 * 60 * 24 * 365
 
-        res.append(certToString(cert)).push_back('\n');
+        res.append(certToString(cert)).push_back(',');
 
         RSA_free(clientKey);
         X509_REQ_free(csr);

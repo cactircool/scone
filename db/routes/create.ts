@@ -152,6 +152,9 @@ interface UnitExpectedUserCreationData {
 }
 type ExpectedUserCreationData = UnitExpectedUserCreationData | UnitExpectedUserCreationData[]
 
+const getLaterDate = (a: Date, b: Date) => a > b ? a : b;
+const getEarlierDate = (a: Date, b: Date) => a > b ? b : a;
+
 // Pass in a list of units for bulk insertion, or send just one for one by one insertion
 router.put('/user', async (req, res) => {
     const isExpected = (a: any): a is ExpectedUserCreationData => true
@@ -160,66 +163,58 @@ router.put('/user', async (req, res) => {
         return
     }
 
-    if (Array.isArray(req.body)) {
-        let users: {
-            nas: string,
-            username: string,
-            attribute: string, op: string, value: string,
-            profile: any,
-            company_id: string,
-            valid_from: Date,
-            valid_until: Date,
-        }[] = []
-        for (const user of req.body) {
-            const username = uuid()
-            for (const ipAddress in user.validRanges) {
-                const range = user.validRanges[ipAddress]
-                users.push({
-                    nas: ipAddress,
-                    username: username,
-                    attribute: 'Single-Use',
-                    op: ':=',
-                    value: 'True',
-                    profile: user.profile,
-                    company_id: user.companyId,
-                    valid_from: range[0],
-                    valid_until: range[1],
-                })
-            }
+    if (!Array.isArray(req.body))
+        req.body = [req.body]
+
+    let users: {
+        nas: string,
+        username: string,
+        attribute: string, op: string, value: string,
+        profile: any,
+        company_id: string,
+        valid_from: Date,
+        valid_until: Date,
+    }[] = []
+
+    let caCalls: [string, number, number][] = []
+    for (const user of req.body) {
+        const username = uuid()
+        let fullRange: [Date?, Date?] = [undefined, undefined]
+        for (const ipAddress in user.validRanges) {
+            const range = user.validRanges[ipAddress]
+            fullRange[0] = getEarlierDate(fullRange[0] ?? range[0], range[0]);
+            fullRange[1] = getLaterDate(fullRange[1] ?? range[1], range[1]);
+            users.push({
+                nas: ipAddress,
+                username: username,
+                attribute: 'Single-Use',
+                op: ':=',
+                value: 'True',
+                profile: user.profile,
+                company_id: user.companyId,
+                valid_from: range[0],
+                valid_until: range[1],
+            })
         }
 
-        const response: PostgrestSingleResponse<any> = await supabase.from('radcheck').insert(users)
-        if (response.error) {
-            res.status(500).json(response.error)
-            return
-        }
+        caCalls.push([ username, (fullRange[0]!.getTime() - Date.now()) / 1000, (fullRange[1]!.getTime() - fullRange[0]!.getTime()) / 1000 ]);
+    }
 
-        res.status(200).json(response.data)
+    const [ca, sql]: [Response, PostgrestSingleResponse<any>] = await Promise.all([
+        fetch(process.env.CA_URL!, {
+            method: 'PUT',
+            body: caCalls as any,
+        }),
+        supabase.from('radcheck').insert(users)
+    ])
+
+    if (sql.error) {
+        res.status(500).json(sql.error)
         return
     }
 
-    let users = []
-    const username = uuid()
-    for (const ipAddress in req.body.validRanges) {
-        const range = req.body.validRanges[ipAddress]
-        users.push({
-            nas: ipAddress,
-            username: username,
-            attribute: 'Single-Use',
-            op: ':=',
-            value: 'True',
-            profile: req.body.profile,
-            company_id: req.body.companyId,
-            valid_from: range[0],
-            valid_until: range[1],
-        })
-    }
-
-    const response: PostgrestSingleResponse<any> = await supabase.from('radcheck').insert(users)
-    if (response.error) {
-        res.status(500).json(response.error)
-        return
-    }
-
-    res.status(200).json(response.data)
+    res.status(200).json({
+        users: sql.data,
+        certs: (await ca.text()).split(',')
+    })
 })
