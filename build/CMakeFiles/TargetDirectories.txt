@@ -1,0 +1,3 @@
+/Users/arjun/Dump/scone/build/CMakeFiles/ca.dir
+/Users/arjun/Dump/scone/build/CMakeFiles/edit_cache.dir
+/Users/arjun/Dump/scone/build/CMakeFiles/rebuild_cache.dir

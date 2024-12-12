@@ -1,0 +1,21 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "Clang",
+	"compiler-simulate-id" : "",
+	"config" : "Debug",
+	"cxx-modules" : {},
+	"dir-cur-bld" : "/Users/arjun/Dump/scone/build",
+	"dir-cur-src" : "/Users/arjun/Dump/scone/ca",
+	"dir-top-bld" : "/Users/arjun/Dump/scone/build",
+	"dir-top-src" : "/Users/arjun/Dump/scone/ca",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"/opt/homebrew/Cellar/openssl@3/3.4.0/include"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : [],
+	"module-dir" : "/Users/arjun/Dump/scone/build/CMakeFiles/ca.dir"
+}

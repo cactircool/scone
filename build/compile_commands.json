@@ -1,0 +1,26 @@
+[
+{
+  "directory": "/Users/arjun/Dump/scone/build",
+  "command": "/opt/homebrew/opt/llvm/bin/clang++ -isystem /opt/homebrew/Cellar/openssl@3/3.4.0/include -g -std=gnu++23 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -mmacosx-version-min=14.5 @CMakeFiles/ca.dir/main.cpp.o.modmap -o CMakeFiles/ca.dir/main.cpp.o -c /Users/arjun/Dump/scone/ca/main.cpp",
+  "file": "/Users/arjun/Dump/scone/ca/main.cpp",
+  "output": "CMakeFiles/ca.dir/main.cpp.o"
+},
+{
+  "directory": "/Users/arjun/Dump/scone/build",
+  "command": "/opt/homebrew/opt/llvm/bin/clang++ -isystem /opt/homebrew/Cellar/openssl@3/3.4.0/include -g -std=gnu++23 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -mmacosx-version-min=14.5 @CMakeFiles/ca.dir/SSLConfig.cpp.o.modmap -o CMakeFiles/ca.dir/SSLConfig.cpp.o -c /Users/arjun/Dump/scone/ca/SSLConfig.cpp",
+  "file": "/Users/arjun/Dump/scone/ca/SSLConfig.cpp",
+  "output": "CMakeFiles/ca.dir/SSLConfig.cpp.o"
+},
+{
+  "directory": "/Users/arjun/Dump/scone/build",
+  "command": "/opt/homebrew/opt/llvm/bin/clang++ -isystem /opt/homebrew/Cellar/openssl@3/3.4.0/include -g -std=gnu++23 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -mmacosx-version-min=14.5 @CMakeFiles/ca.dir/Request.cpp.o.modmap -o CMakeFiles/ca.dir/Request.cpp.o -c /Users/arjun/Dump/scone/ca/Request.cpp",
+  "file": "/Users/arjun/Dump/scone/ca/Request.cpp",
+  "output": "CMakeFiles/ca.dir/Request.cpp.o"
+},
+{
+  "directory": "/Users/arjun/Dump/scone/build",
+  "command": "/opt/homebrew/opt/llvm/bin/clang++ -isystem /opt/homebrew/Cellar/openssl@3/3.4.0/include -g -std=gnu++23 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -mmacosx-version-min=14.5 @CMakeFiles/ca.dir/JSON.cpp.o.modmap -o CMakeFiles/ca.dir/JSON.cpp.o -c /Users/arjun/Dump/scone/ca/JSON.cpp",
+  "file": "/Users/arjun/Dump/scone/ca/JSON.cpp",
+  "output": "CMakeFiles/ca.dir/JSON.cpp.o"
+}
+]
