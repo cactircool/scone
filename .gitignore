@@ -3,3 +3,6 @@ ca/.*
 ca/cmake-build-debug
 ca/certs
 build/
+db_server/node_modules/
+db_server/certs/**
+db_server/.env
