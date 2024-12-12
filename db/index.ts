@@ -24,7 +24,8 @@ app.use('/get', getRouter)
 
 const server = createServer({
     key: readFileSync(`${CERT_PREFIX}/server.key`),
-    cert: readFileSync(`${CERT_PREFIX}/server.crt`)
+    cert: readFileSync(`${CERT_PREFIX}/server.crt`),
+    passphrase: process.env.PASSPHRASE,
 }, app)
 
 server.listen(port, () => {
