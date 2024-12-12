@@ -7,6 +7,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <cstring>
 #include "JSON.hpp"
 
 class Request {

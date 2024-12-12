@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <stdexcept>
+#include <cstring>
 
 class JSON {
 public:

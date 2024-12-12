@@ -1,6 +1,7 @@
 .vscode
 ca/.*
 ca/cmake-build-debug
+ca/build
 ca/certs
 build/
 db/node_modules/
