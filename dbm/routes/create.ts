@@ -79,6 +79,7 @@ interface ExpectedThirdPartyCreationData {
     description?: string // put whatever you want here
     email: string
     password: string
+    allowedVlanRanges: [number, number][]
 }
 
 router.put('/third-party', async (req, res) => {
@@ -102,27 +103,30 @@ router.put('/third-party', async (req, res) => {
     let clientError = false;
 
     try {
-        const role: PostgrestSingleResponse<any> = await supabase.from('roles').insert({
-            id: response.data.user!.id,
-            email: data.email,
-            role: 'third_party'
-        });
+        const [role, nas]: [PostgrestSingleResponse<any>, PostgrestSingleResponse<any>] = await Promise.all([
+            supabase.from('roles').insert({
+                id: response.data.user!.id,
+                email: data.email,
+                role: 'third_party'
+            }),
 
-        const nas: PostgrestSingleResponse<any> = await supabase.from('nas').insert({
-            shortname: data.thirdPartyName,
-            nasname: data.routerIPAddress,
-            type: data.type ?? 'other',
-            ports: data.ports ?? null,
-            secret: data.secret,
-            server: data.server ?? null,
-            community: data.community ?? null,
-            description: data.description ?? null,
-            address: data.address.length === 0 ? (() => {
-                clientError = true
-                throw new Error('Address must be at least 1 character long')
-            })() : data.address,
-            id: response.data.user!.id,
-        });
+            supabase.from('nas').insert({
+                shortname: data.thirdPartyName,
+                nasname: data.routerIPAddress,
+                type: data.type ?? 'other',
+                ports: data.ports ?? null,
+                secret: data.secret,
+                server: data.server ?? null,
+                community: data.community ?? null,
+                description: data.description ?? null,
+                address: data.address.length === 0 ? (() => {
+                    clientError = true
+                    throw new Error('Address must be at least 1 character long')
+                })() : data.address,
+                id: response.data.user!.id,
+                allowed_vlan_ranges: data.allowedVlanRanges,
+            })
+        ])
 
         if (nas.error || role.error) {
             res.status(500).json(nas.error || role.error)

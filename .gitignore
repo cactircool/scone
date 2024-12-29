@@ -4,6 +4,6 @@ ca/cmake-build-debug
 ca/build
 ca/certs
 build/
-db/node_modules/
-db/certs/**
-db/.env
+dbm/node_modules/
+dbm/certs/**
+dbm/.env
