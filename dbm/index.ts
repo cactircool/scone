@@ -6,6 +6,7 @@ import { router as createRouter } from './routes/create'
 import { router as authRouter } from './routes/auth'
 import { router as deleteRouter } from './routes/delete'
 import { router as getRouter } from './routes/get'
+import { router as goRouter } from './routes/go'
 import { Agent, setGlobalDispatcher } from 'undici'
 
 const CERT_PREFIX = './certs'
@@ -29,6 +30,7 @@ app.use('/create', createRouter)
 app.use('/auth', authRouter)
 app.use('/delete', deleteRouter)
 app.use('/get', getRouter)
+app.use('/go', goRouter)
 
 const server = createServer({
     key: readFileSync(`${CERT_PREFIX}/server.key`),
